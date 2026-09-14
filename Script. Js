@@ -1,0 +1,232 @@
+const defaultStaff = [
+  {
+    name: "Abebe Kebede",
+    position: "Lecturer",
+    years: 8,
+    family: 5
+  },
+  {
+    name: "Fatuma Ahmed",
+    position: "Administrative Staff",
+    years: 5,
+    family: 4
+  },
+  {
+    name: "Dawit Tadesse",
+    position: "Senior Lecturer",
+    years: 12,
+    family: 6
+  },
+  {
+    name: "Hana Ali",
+    position: "Technician",
+    years: 3,
+    family: 3
+  }
+];
+
+const defaultApartments = [
+  {
+    id: "A-101",
+    type: "Two Bedroom",
+    status: "Available"
+  },
+  {
+    id: "A-102",
+    type: "Two Bedroom",
+    status: "Available"
+  },
+  {
+    id: "B-201",
+    type: "Three Bedroom",
+    status: "Available"
+  },
+  {
+    id: "B-202",
+    type: "Three Bedroom",
+    status: "Allocated"
+  },
+  {
+    id: "C-301",
+    type: "One Bedroom",
+    status: "Available"
+  },
+  {
+    id: "C-302",
+    type: "One Bedroom",
+    status: "Allocated"
+  }
+];
+
+let staff =
+  JSON.parse(localStorage.getItem("hu_staff")) ||
+  defaultStaff;
+
+let apartments =
+  JSON.parse(localStorage.getItem("hu_apartments")) ||
+  defaultApartments;
+
+function calculateScore(person) {
+  let score = person.years * 3 + person.family * 2;
+
+  if (
+    person.position
+      .toLowerCase()
+      .includes("senior")
+  ) {
+    score += 5;
+  }
+
+  return score;
+}
+
+function saveData() {
+  localStorage.setItem(
+    "hu_staff",
+    JSON.stringify(staff)
+  );
+
+  localStorage.setItem(
+    "hu_apartments",
+    JSON.stringify(apartments)
+  );
+
+  render();
+}
+
+function render() {
+  document.getElementById("totalStaff").textContent =
+    staff.length;
+
+  document.getElementById(
+    "totalApartments"
+  ).textContent = apartments.length;
+
+  document.getElementById(
+    "availableApartments"
+  ).textContent = apartments.filter(
+    a => a.status === "Available"
+  ).length;
+
+  document.getElementById(
+    "allocatedApartments"
+  ).textContent = apartments.filter(
+    a => a.status === "Allocated"
+  ).length;
+
+  document.getElementById("staffTable").innerHTML =
+    staff
+      .map(
+        s => `
+        <tr>
+          <td>${s.name}</td>
+          <td>${s.position}</td>
+          <td>${s.years}</td>
+          <td>${s.family}</td>
+          <td><b>${calculateScore(s)}</b></td>
+          <td>${s.allocated || "Pending"}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+  document.getElementById(
+    "apartmentGrid"
+  ).innerHTML = apartments
+    .map(
+      a => `
+      <div class="card apt ${a.status.toLowerCase()}">
+        <h3>${a.id}</h3>
+        <p>${a.type}</p>
+        <span class="status">${a.status}</span>
+      </div>
+    `
+    )
+    .join("");
+}
+
+document.getElementById("addStaffBtn").onclick =
+  function () {
+    const name = prompt("Staff full name:");
+
+    if (!name) return;
+
+    const position =
+      prompt("Position:") || "Staff";
+
+    const years =
+      Number(prompt("Years of service:") || 0);
+
+    const family =
+      Number(prompt("Family size:") || 1);
+
+    staff.push({
+      name,
+      position,
+      years,
+      family
+    });
+
+    saveData();
+  };
+
+document.getElementById("allocateBtn").onclick =
+  function () {
+    const available = apartments.filter(
+      a => a.status === "Available"
+    );
+
+    const pending = staff
+      .filter(s => !s.allocated)
+      .sort(
+        (a, b) =>
+          calculateScore(b) -
+          calculateScore(a)
+      );
+
+    pending
+      .slice(0, available.length)
+      .forEach((person, index) => {
+        person.allocated =
+          available[index].id;
+
+        available[index].status =
+          "Allocated";
+      });
+
+    document.getElementById(
+      "allocationMessage"
+    ).textContent =
+      `Allocation completed for ${
+        Math.min(
+          pending.length,
+          available.length
+        )
+      } staff member(s).`;
+
+    saveData();
+  };
+
+document.getElementById("resetBtn").onclick =
+  function () {
+    if (
+      confirm(
+        "Reset the demo data?"
+      )
+    ) {
+      localStorage.clear();
+
+      staff = defaultStaff.map(
+        s => ({ ...s })
+      );
+
+      apartments =
+        defaultApartments.map(
+          a => ({ ...a })
+        );
+
+      render();
+    }
+  };
+
+render();
